@@ -38,6 +38,39 @@ Two parts:
 - Codes expire from the bridge after a short TTL (default 120 seconds).
 - Nothing is written to disk except the MSAL token cache, which you can delete at any time.
 
+## Getting started
+
+See [SETUP.md](SETUP.md) for the Entra app registration, bridge, and extension steps.
+
+## Project layout
+
+```
+outlook-otp-autofill/
+  bridge/
+    src/
+      index.js    HTTP server, polling loop, entry point
+      auth.js     MSAL device-code sign-in and token cache
+      graph.js    Microsoft Graph mail fetch
+      otp.js      OTP extraction
+      store.js    Latest-code store with TTL and consume
+      config.js   Env loading and validation
+    test/         node:test unit and HTTP tests
+  extension/
+    manifest.json
+    background.js  Polls the bridge, badge, pushes code to tab
+    content.js     Finds OTP inputs and fills them
+    popup.html/js  Latest code, copy, fill-now, settings
+```
+
+## Known limitations
+
+- Polling, not push. Graph change notifications need a public webhook URL, which
+  a local tool should not require. Default poll is every 5 seconds.
+- Only the inbox folder is watched. Mail that rules move elsewhere is not seen.
+- Autofill is heuristic. Sites with unusual input markup may need the manual
+  **Fill on this page** button.
+- Firefox is not supported yet (needs `browser.*` shims and a MV2/MV3 manifest tweak).
+
 ## Status
 
-In progress. See the root README for the project list.
+Working end to end. Tests cover extraction, the code store, and the HTTP API.
