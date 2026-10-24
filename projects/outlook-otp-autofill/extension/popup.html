@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Outlook OTP Autofill</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { width: 300px; margin: 0; padding: 14px; font: 13px system-ui, sans-serif; }
+    h1 { font-size: 14px; margin: 0 0 10px; }
+    .code { font: 600 28px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 4px; margin: 6px 0; }
+    .meta { opacity: .7; font-size: 12px; min-height: 16px; }
+    .row { display: flex; gap: 8px; margin-top: 10px; }
+    button { flex: 1; padding: 7px 8px; border-radius: 6px; border: 1px solid #8884; background: #1b5e20; color: #fff; cursor: pointer; }
+    button.secondary { background: transparent; color: inherit; }
+    button:disabled { opacity: .5; cursor: default; }
+    details { margin-top: 14px; border-top: 1px solid #8884; padding-top: 10px; }
+    summary { cursor: pointer; font-weight: 600; }
+    label { display: block; margin-top: 8px; font-size: 12px; opacity: .85; }
+    input[type=text], input[type=password], input[type=number] { width: 100%; box-sizing: border-box; padding: 6px; margin-top: 3px; border-radius: 5px; border: 1px solid #8886; background: transparent; color: inherit; }
+    .check { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+    .status { margin-top: 8px; font-size: 12px; min-height: 16px; }
+    .err { color: #d32f2f; }
+    .ok { color: #2e7d32; }
+  </style>
+</head>
+<body>
+  <h1>Outlook OTP Autofill</h1>
+  <div id="code" class="code">------</div>
+  <div id="meta" class="meta">Checking bridge...</div>
+  <div class="row">
+    <button id="fill">Fill on this page</button>
+    <button id="copy" class="secondary">Copy</button>
+  </div>
+  <div id="status" class="status"></div>
+
+  <details id="settings">
+    <summary>Settings</summary>
+    <label>Bridge URL <input id="bridgeUrl" type="text" placeholder="http://127.0.0.1:4321" /></label>
+    <label>Bridge token <input id="bridgeToken" type="password" placeholder="same value as BRIDGE_TOKEN in the bridge config" /></label>
+    <label>Poll interval (ms) <input id="pollMs" type="number" min="1000" step="500" /></label>
+    <div class="check"><input id="autofill" type="checkbox" /><label for="autofill" style="margin:0">Autofill automatically when a code arrives</label></div>
+    <div class="row"><button id="save">Save</button></div>
+  </details>
+  <script src="popup.js"></script>
+</body>
+</html>
