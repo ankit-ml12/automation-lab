@@ -1,0 +1,18 @@
+{
+  "name": "outlook-otp-bridge",
+  "version": "0.1.0",
+  "description": "Local service that reads OTP codes from an Outlook inbox via Microsoft Graph and serves them to the browser extension",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^2.16.0"
+  },
+  "license": "MIT"
+}
