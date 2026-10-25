@@ -27,6 +27,16 @@ async function fetchLatest(settings) {
   }
 }
 
+async function fetchStatus(settings) {
+  if (!settings.bridgeToken) return null;
+  try {
+    const res = await fetch(`${settings.bridgeUrl}/status`, { headers: { "X-Bridge-Token": settings.bridgeToken }, cache: "no-store" });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 async function consume(settings, code) {
   try {
     await fetch(`${settings.bridgeUrl}/consume`, {
@@ -118,6 +128,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse(result ?? { filled: false });
       })
       .catch(() => sendResponse({ filled: false }));
+    return true;
+  }
+  if (msg?.type === "GET_STATUS") {
+    getSettings().then(fetchStatus).then((status) => sendResponse(status));
     return true;
   }
   if (msg?.type === "SETTINGS_CHANGED") {

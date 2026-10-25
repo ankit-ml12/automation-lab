@@ -72,9 +72,34 @@ $("save").addEventListener("click", async () => {
   setTimeout(render, 800);
 });
 
+function renderBridge(status) {
+  const el = $("bridge");
+  if (!status) {
+    el.textContent = "";
+    return;
+  }
+  const parts = [];
+  if (status.account) parts.push(status.account);
+  if (status.lastPollAgeSeconds != null) parts.push(`inbox checked ${status.lastPollAgeSeconds}s ago`);
+  else parts.push("no poll yet");
+  parts.push(`${status.codesSeen} code${status.codesSeen === 1 ? "" : "s"} this session`);
+  el.textContent = parts.join(" · ");
+  el.className = status.lastError ? "meta err" : "meta";
+  if (status.lastError) el.textContent += ` · ${status.lastError}`;
+}
+
+function refreshBridge() {
+  chrome.runtime.sendMessage({ type: "GET_STATUS" }, (status) => {
+    if (chrome.runtime.lastError) return;
+    renderBridge(status);
+  });
+}
+
 chrome.storage.session.onChanged.addListener(render);
+setInterval(refreshBridge, 3000);
 
 loadSettings().then(() => {
   chrome.runtime.sendMessage({ type: "POLL_NOW" }, () => void chrome.runtime.lastError);
   render();
+  refreshBridge();
 });
