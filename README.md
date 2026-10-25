@@ -1,5 +1,7 @@
 # automation-lab
 
+[![ci](https://github.com/ankit-ml12/automation-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/ankit-ml12/automation-lab/actions/workflows/ci.yml)
+
 A monorepo of small, practical automation projects. Each project lives in its own
 folder under `projects/` with its own README, setup steps, and tests.
 
@@ -25,6 +27,10 @@ automation-lab/
 2. Keep dependencies inside the project folder. No root-level package manager.
 3. Add a row to the table above.
 4. If the project has tests, add a job to `.github/workflows/ci.yml`.
+
+## Changes
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

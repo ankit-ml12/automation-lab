@@ -31,6 +31,17 @@ Two parts:
 - The extension needs no Azure secrets and no mail permission of its own.
 - Rotating or revoking access is one file delete.
 
+## Bridge API
+
+All routes except `/health` require the `X-Bridge-Token` header.
+
+| Route | Purpose |
+|---|---|
+| `GET /health` | Liveness check, no auth |
+| `GET /latest` | Latest unexpired, unconsumed code with sender and age |
+| `POST /consume` | Body `{ "code": "123456" }`. Marks the code as used so it is not offered again |
+| `GET /status` | Account, poll count, last poll age, last error, codes seen |
+
 ## Security notes
 
 - The bridge binds to `127.0.0.1` only and requires a shared secret header.
