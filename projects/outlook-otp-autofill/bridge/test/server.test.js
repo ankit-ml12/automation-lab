@@ -48,3 +48,19 @@ test("latest returns code and consume hides it", async () => {
     assert.equal(body.code, null);
   });
 });
+
+test("status reports runtime diagnostics", async () => {
+  await withServer(async (base, store) => {
+    const headers = { "X-Bridge-Token": "secret-token" };
+    let r = await fetch(`${base}/status`);
+    assert.equal(r.status, 401);
+    r = await fetch(`${base}/status`, { headers });
+    const body = await r.json();
+    assert.equal(r.status, 200);
+    assert.equal(typeof body.uptimeSeconds, "number");
+    assert.equal(body.hasCode, false);
+    store.set({ code: "123456", receivedAt: Date.now() });
+    r = await fetch(`${base}/status`, { headers });
+    assert.equal((await r.json()).hasCode, true);
+  });
+});

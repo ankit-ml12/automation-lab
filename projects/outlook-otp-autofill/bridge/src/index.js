@@ -4,20 +4,33 @@ import { createClient, getAccessToken } from "./auth.js";
 import { fetchMessagesSince } from "./graph.js";
 import { extractOtp } from "./otp.js";
 import { createCodeStore } from "./store.js";
+import { senderAllowed } from "./filters.js";
 
 const store = createCodeStore({ ttlSeconds: config.codeTtlSeconds });
 const seen = new Set();
 let lastPollIso = new Date(Date.now() - 60_000).toISOString();
 
-function senderAllowed(from) {
-  if (config.senderAllowlist.length === 0) return true;
-  const f = from.toLowerCase();
-  return config.senderAllowlist.some((s) => f.includes(s));
-}
+// Runtime diagnostics exposed on /status so the extension popup can explain
+// what is going on without the user reading terminal output.
+export const state = {
+  startedAt: Date.now(),
+  account: null,
+  polls: 0,
+  lastPollAt: null,
+  lastPollDurationMs: null,
+  lastError: null,
+  lastErrorAt: null,
+  codesSeen: 0,
+};
 
 async function pollOnce(client) {
+  const started = Date.now();
   const token = await getAccessToken(client);
   const messages = await fetchMessagesSince(token, lastPollIso);
+  state.polls += 1;
+  state.lastPollAt = Date.now();
+  state.lastPollDurationMs = state.lastPollAt - started;
+  state.lastError = null;
   // Move the watermark back a little so clock skew never drops a message.
   lastPollIso = new Date(Date.now() - 30_000).toISOString();
 
@@ -25,10 +38,11 @@ async function pollOnce(client) {
   for (const msg of messages.sort((a, b) => a.receivedAt - b.receivedAt)) {
     if (seen.has(msg.id)) continue;
     seen.add(msg.id);
-    if (!senderAllowed(msg.from)) continue;
+    if (!senderAllowed(msg.from, config.senderAllowlist)) continue;
     const found = extractOtp({ subject: msg.subject, body: msg.body, bodyIsHtml: msg.bodyIsHtml });
     if (!found) continue;
     store.set({ code: found.code, subject: msg.subject, from: msg.from, receivedAt: msg.receivedAt, messageId: msg.id });
+    state.codesSeen += 1;
     console.log(`[otp] ${new Date(msg.receivedAt).toISOString()} from=${msg.from} code=${found.code} via=${found.source}`);
   }
   if (seen.size > 500) {
@@ -44,6 +58,8 @@ function startPolling(client) {
     try {
       await pollOnce(client);
     } catch (err) {
+      state.lastError = err.message;
+      state.lastErrorAt = Date.now();
       console.error(`[poll] ${err.message}`);
     } finally {
       running = false;
@@ -82,7 +98,7 @@ function readBody(req) {
   });
 }
 
-export function createBridgeServer(codeStore) {
+export function createBridgeServer(codeStore, runtime = state) {
   return createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -103,6 +119,22 @@ export function createBridgeServer(codeStore) {
       });
     }
 
+    if (req.method === "GET" && url.pathname === "/status") {
+      return json(res, 200, {
+        ok: !runtime.lastError,
+        uptimeSeconds: Math.floor((Date.now() - runtime.startedAt) / 1000),
+        account: runtime.account,
+        polls: runtime.polls,
+        lastPollAgeSeconds: runtime.lastPollAt ? Math.floor((Date.now() - runtime.lastPollAt) / 1000) : null,
+        lastPollDurationMs: runtime.lastPollDurationMs,
+        lastError: runtime.lastError,
+        codesSeen: runtime.codesSeen,
+        pollIntervalMs: config.pollIntervalMs,
+        codeTtlSeconds: config.codeTtlSeconds,
+        hasCode: Boolean(codeStore.get()),
+      });
+    }
+
     if (req.method === "POST" && url.pathname === "/consume") {
       const { code } = await readBody(req);
       return json(res, 200, { consumed: codeStore.consume(code) });
@@ -116,6 +148,8 @@ async function main() {
   const client = createClient();
   // Sign in up front so the device-code prompt appears before we start serving.
   await getAccessToken(client);
+  const accounts = await client.getTokenCache().getAllAccounts();
+  state.account = accounts[0]?.username ?? null;
 
   const server = createBridgeServer(store);
   server.listen(config.port, "127.0.0.1", () => {
