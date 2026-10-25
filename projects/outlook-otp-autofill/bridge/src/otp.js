@@ -83,9 +83,20 @@ function findNearKeyword(text, pattern, normalise) {
   return best ? best.code : null;
 }
 
+// Senders often pad codes with non-breaking spaces, zero-width characters, or
+// fancy quotes. Fold them to plain ASCII so the regexes see what a human sees.
+export function normaliseText(text) {
+  return (text || "")
+    .replace(/[\u200B-\u200D\uFEFF\u2060]/g, "")
+    .replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g, " ")
+    .replace(/[\u2010-\u2015]/g, "-")
+    .replace(/[\u2018\u2019\u201C\u201D]/g, '"')
+    .replace(/([A-Za-z]):(\d)/g, "$1: $2");
+}
+
 export function extractOtp({ subject = "", body = "", bodyIsHtml = false } = {}) {
   const text = bodyIsHtml ? htmlToText(body) : (body || "");
-  const combined = maskPhoneNumbers(`${subject}\n${text}`);
+  const combined = maskPhoneNumbers(normaliseText(`${subject}\n${text}`));
 
   // 1. Digit code near a keyword anywhere in subject + body.
   const digit = findNearKeyword(combined, DIGIT_CODE, normaliseDigits);
